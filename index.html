@@ -294,8 +294,17 @@
         }
 
         function buildScenarioTable(hlpRate, hlnRate, hlpPPB, hlnPPB, currentHLP, currentHLN) {
-            const hlpValues = [25, 27, 29, 30, 31, 33, 35];
-            const hlnValues = [20, 22, 23, 25, 27, 28, 30];
+            const baseHLP = Math.round(currentHLP);
+            const baseHLN = Math.round(currentHLN);
+            const hlpValues = [];
+            const hlnValues = [];
+            for (let i = -5; i <= 5; i++) {
+                const hlpVal = baseHLP + i;
+                const hlnVal = baseHLN + i;
+                if (hlpVal > 0) hlpValues.push(hlpVal);
+                if (hlnVal > 0) hlnValues.push(hlnVal);
+            }
+
             let html = '<thead><tr><th>HLP \\ HLN</th>';
             for (const hln of hlnValues) html += `<th>${hln}</th>`;
             html += '</tr></thead><tbody>';
@@ -306,7 +315,7 @@
                     const hlpB = (hlp * hlpRate) / hlpPPB;
                     const hlnB = (hln * hlnRate) / hlnPPB;
                     const val = Math.round(Math.min(hlpB, hlnB));
-                    const isCurrent = (hlp === Math.round(currentHLP) && hln === Math.round(currentHLN));
+                    const isCurrent = (hlp === baseHLP && hln === baseHLN);
                     html += `<td class="${isCurrent ? 'current' : ''}">${val.toLocaleString()}</td>`;
                 }
                 html += '</tr>';
