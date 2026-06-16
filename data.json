@@ -1,0 +1,29 @@
+{
+  "KW24": {
+    "picksPerBox": 17.80,
+    "hlpShare": 60,
+    "hlnShare": 40,
+    "plannedHLP": 31,
+    "plannedHLN": 23,
+    "plannedHLPpicks": 17713,
+    "plannedHLNpicks": 11813
+  },
+  "KW25": {
+    "picksPerBox": 17.80,
+    "hlpShare": 60,
+    "hlnShare": 40,
+    "plannedHLP": 31,
+    "plannedHLN": 23,
+    "plannedHLPpicks": 17713,
+    "plannedHLNpicks": 11813
+  },
+  "KW26": {
+    "picksPerBox": 18.00,
+    "hlpShare": 60,
+    "hlnShare": 40,
+    "plannedHLP": 31,
+    "plannedHLN": 23,
+    "plannedHLPpicks": 17900,
+    "plannedHLNpicks": 11900
+  }
+}
