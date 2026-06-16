@@ -182,25 +182,73 @@
 
     <script>
         let weeklyData = {};
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0Qz6kVTD9VggSUUFvcdsZdIJuurG01FU2GL5XS3MwUI4oGFZQ_qJuEONcNMUuwYU2wtOCyVuCcAFF/pub?output=csv&gid=';
+        let SHEET_GID = '0'; // Will be updated to Reference tab GID
 
         async function loadDataFile() {
+            try {
+                // Try Google Sheet first
+                const gid = document.getElementById('sheetGid')?.value || SHEET_GID;
+                const url = SHEET_CSV_URL + gid;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const csv = await response.text();
+                    parseCSV(csv);
+                    document.getElementById('kwStatus').textContent = `${Object.keys(weeklyData).length} weeks loaded from Google Sheet`;
+                    return;
+                }
+            } catch (e) {
+                console.log('Sheet fetch failed, trying data.json');
+            }
+            // Fallback to data.json
             try {
                 const response = await fetch('data.json');
                 if (response.ok) {
                     weeklyData = await response.json();
-                    const select = document.getElementById('kwSelect');
-                    const weeks = Object.keys(weeklyData).sort();
-                    weeks.forEach(kw => {
-                        const opt = document.createElement('option');
-                        opt.value = kw;
-                        opt.textContent = kw;
-                        select.appendChild(opt);
-                    });
-                    document.getElementById('kwStatus').textContent = `${weeks.length} weeks loaded from data.json`;
+                    populateKWDropdown();
+                    document.getElementById('kwStatus').textContent = `${Object.keys(weeklyData).length} weeks loaded from data.json`;
                 }
             } catch (e) {
-                document.getElementById('kwStatus').textContent = 'data.json not found - using manual input';
+                document.getElementById('kwStatus').textContent = 'No data source found - using manual input';
             }
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            if (lines.length < 2) return;
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            weeklyData = {};
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                if (!values[0]) continue;
+                const kw = 'KW' + values[0].replace(/[^0-9]/g, '');
+                const row = {};
+                headers.forEach((h, idx) => { row[h] = values[idx]; });
+                weeklyData[kw] = {
+                    picksPerBox: parseFloat(row.picksPerBox || row.picks_per_box || 17.80),
+                    hlpShare: parseFloat(row.hlpShare || row.hlp_share || 60),
+                    hlnShare: parseFloat(row.hlnShare || row.hln_share || 40),
+                    plannedHLP: parseFloat(row.plannedHLP || row.planned_hlp || 31),
+                    plannedHLN: parseFloat(row.plannedHLN || row.planned_hln || 23),
+                    plannedHLPpicks: parseFloat(row.plannedHLPpicks || row.planned_hlp_picks || 17713),
+                    plannedHLNpicks: parseFloat(row.plannedHLNpicks || row.planned_hln_picks || 11813)
+                };
+            }
+            populateKWDropdown();
+        }
+
+        function populateKWDropdown() {
+            const select = document.getElementById('kwSelect');
+            select.innerHTML = '<option value="">-- Select KW --</option>';
+            const weeks = Object.keys(weeklyData).sort((a, b) => {
+                return parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,''));
+            });
+            weeks.forEach(kw => {
+                const opt = document.createElement('option');
+                opt.value = kw;
+                opt.textContent = kw;
+                select.appendChild(opt);
+            });
         }
 
         function loadWeekData() {
