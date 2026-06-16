@@ -98,6 +98,17 @@
         <h1>Hybrid Pick Rate & Performance Loss Calculator</h1>
         <p class="subtitle">1 Box = HLP picks (60% of 17.80) + HLN picks (40% of 17.80) — both required to complete a box</p>
 
+        <!-- KW Selector -->
+        <div class="card" style="margin-bottom:20px; padding:12px 20px;">
+            <div class="input-row" style="margin-bottom:0;">
+                <label style="min-width:120px; font-weight:bold; font-size:1rem; color:#2F5496;">Calendar Week</label>
+                <select id="kwSelect" onchange="loadWeekData()" style="padding:8px 16px; font-size:1rem; border:2px solid #2F5496; border-radius:6px; background:#FFFFCC; font-weight:bold; cursor:pointer;">
+                    <option value="">-- Select KW --</option>
+                </select>
+                <span id="kwStatus" style="font-size:0.8rem; color:#888; margin-left:12px;"></span>
+            </div>
+        </div>
+
         <div class="grid">
             <!-- Reference Data -->
             <div class="card">
@@ -170,10 +181,48 @@
     </div>
 
     <script>
+        let weeklyData = {};
+
+        async function loadDataFile() {
+            try {
+                const response = await fetch('data.json');
+                if (response.ok) {
+                    weeklyData = await response.json();
+                    const select = document.getElementById('kwSelect');
+                    const weeks = Object.keys(weeklyData).sort();
+                    weeks.forEach(kw => {
+                        const opt = document.createElement('option');
+                        opt.value = kw;
+                        opt.textContent = kw;
+                        select.appendChild(opt);
+                    });
+                    document.getElementById('kwStatus').textContent = `${weeks.length} weeks loaded from data.json`;
+                }
+            } catch (e) {
+                document.getElementById('kwStatus').textContent = 'data.json not found - using manual input';
+            }
+        }
+
+        function loadWeekData() {
+            const kw = document.getElementById('kwSelect').value;
+            if (!kw || !weeklyData[kw]) return;
+            const d = weeklyData[kw];
+            document.getElementById('picksPerBox').value = d.picksPerBox;
+            document.getElementById('hlpShare').value = d.hlpShare;
+            document.getElementById('hlnShare').value = d.hlnShare;
+            document.getElementById('plannedHLP').value = d.plannedHLP;
+            document.getElementById('plannedHLN').value = d.plannedHLN;
+            document.getElementById('plannedHLPpicks').value = d.plannedHLPpicks;
+            document.getElementById('plannedHLNpicks').value = d.plannedHLNpicks;
+            document.getElementById('kwStatus').textContent = `Loaded ${kw} data`;
+            calculate();
+        }
+
         const HOURS = 12;
         const defaultBoxes = [922, 1639, 1455, 773, '', '', '', '', '', '', '', ''];
 
         function init() {
+            loadDataFile();
             const tbody = document.getElementById('hourlyBody');
             for (let i = 0; i < HOURS; i++) {
                 const tr = document.createElement('tr');
