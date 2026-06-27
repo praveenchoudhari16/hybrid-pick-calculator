@@ -96,7 +96,7 @@
 <body>
     <div class="container">
         <h1>Hybrid Pick Rate & Performance Loss Calculator</h1>
-        <p class="subtitle">1 Box = HLP picks (60% of 17.80) + HLN picks (40% of 17.80) — both required to complete a box</p>
+        <p class="subtitle">1 Box = HLP picks (60% of 21.26) + HLN picks (40% of 21.26) — both required to complete a box</p>
 
         <!-- KW Selector -->
         <div class="card" style="margin-bottom:20px; padding:12px 20px;">
@@ -113,13 +113,25 @@
             <!-- Reference Data -->
             <div class="card">
                 <h3>Reference Data</h3>
-                <div class="input-row"><label>Picks per Box</label><input type="number" id="picksPerBox" value="17.80" step="0.01" onchange="calculate()"></div>
-                <div class="input-row"><label>HLP Share (%)</label><input type="number" id="hlpShare" value="60" step="1" onchange="calculate()"><span>%</span></div>
-                <div class="input-row"><label>HLN Share (%)</label><input type="number" id="hlnShare" value="40" step="1" onchange="calculate()"><span>%</span></div>
-                <div class="input-row"><label>Planned HLP Pickers</label><input type="number" id="plannedHLP" value="31" onchange="calculate()"></div>
-                <div class="input-row"><label>Planned HLN Pickers</label><input type="number" id="plannedHLN" value="23" onchange="calculate()"></div>
-                <div class="input-row"><label>Planned HLP Picks/hr</label><input type="number" id="plannedHLPpicks" value="17713" onchange="calculate()"></div>
-                <div class="input-row"><label>Planned HLN Picks/hr</label><input type="number" id="plannedHLNpicks" value="11813" onchange="calculate()"></div>
+                <div style="background:#FFF3E0; border:2px solid #FF9800; border-radius:8px; padding:12px 16px; margin-bottom:16px;">
+                    <div style="font-size:0.75rem; font-weight:600; color:#E65100; margin-bottom:6px;">⚠️ MANUAL ENTRY — from Barn Tracker</div>
+                    <div class="input-row" style="margin-bottom:8px;"><label style="font-weight:600;">Picks per Box</label><input type="number" id="picksPerBox" value="21.26" step="0.01" class="highlight" style="border-color:#FF9800; font-size:1.1rem; width:110px;" onchange="calculate()"></div>
+                    <div class="input-row" style="margin-bottom:8px;"><label style="font-weight:600;">HLP Share (%)</label><input type="number" id="hlpShare" value="60" step="1" class="highlight" style="border-color:#FF9800;" onchange="calculate()"><span>%</span></div>
+                    <div class="input-row" style="margin-bottom:8px;"><label style="font-weight:600;">HLN Share (%)</label><input type="number" id="hlnShare" value="40" step="1" class="highlight" style="border-color:#FF9800;" onchange="calculate()"><span>%</span></div>
+                    <div class="input-row" style="margin-bottom:8px;"><label style="font-weight:600;">HLP Pick Performance</label><input type="number" id="hlpPickPerf" value="571" step="1" class="highlight" style="border-color:#FF9800;" onchange="calculate()"><span style="font-size:0.75rem;color:#888;">picks/picker/hr</span></div>
+                    <div class="input-row" style="margin-bottom:0;"><label style="font-weight:600;">HLN Pick Performance</label><input type="number" id="hlnPickPerf" value="514" step="1" class="highlight" style="border-color:#FF9800;" onchange="calculate()"><span style="font-size:0.75rem;color:#888;">picks/picker/hr</span></div>
+                    <div style="font-size:0.65rem; color:#BF360C; margin-top:8px;">Enter these values from Barn Tracker each shift</div>
+                </div>
+                <div style="background:#E3F2FD; border:1px solid #90CAF9; border-radius:6px; padding:10px 14px;">
+                    <div style="font-size:0.7rem; color:#1565c0; margin-bottom:4px;">Planned Pickers = taken from Your Input</div>
+                    <div class="result-row"><span class="key">Planned HLP Pickers</span><span class="val" id="plannedHLPdisplay" style="color:#1565c0;">—</span></div>
+                    <div class="result-row"><span class="key">Planned HLN Pickers</span><span class="val" id="plannedHLNdisplay" style="color:#1565c0;">—</span></div>
+                </div>
+                <div style="margin-top:12px; padding-top:10px; border-top:1px solid #ddd;">
+                    <div class="result-row"><span class="key">Planned HLP Picks/hr</span><span class="val" id="plannedHLPpicksDisplay" style="color:#1565c0;">—</span></div>
+                    <div class="result-row"><span class="key">Planned HLN Picks/hr</span><span class="val" id="plannedHLNpicksDisplay" style="color:#1565c0;">—</span></div>
+                    <div style="font-size:0.7rem; color:#999; margin-top:6px;">= Pickers × Pick Performance</div>
+                </div>
             </div>
 
             <!-- Your Input -->
@@ -132,6 +144,16 @@
                     <div class="value" id="maxBoxes">—</div>
                     <div class="label">MAX BOXES / HOUR</div>
                 </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+                    <div style="background:#FFF3E0; border:2px solid #e65100; border-radius:8px; padding:12px; text-align:center;">
+                        <div style="font-size:1.8rem; font-weight:bold; color:#e65100;" id="actualUPLtop">—</div>
+                        <div style="font-size:0.75rem; color:#bf360c; font-weight:600;">Actual Upper Pick Limit</div>
+                    </div>
+                    <div style="background:#F3E5F5; border:2px solid #6a1b9a; border-radius:8px; padding:12px; text-align:center;">
+                        <div style="font-size:1.8rem; font-weight:bold; color:#6a1b9a;" id="actualAvgBoxesTop">—</div>
+                        <div style="font-size:0.75rem; color:#4a148c; font-weight:600;">Actual Average Boxes</div>
+                    </div>
+                </div>
 
                 <div class="result-row"><span class="key">HLP Rate/Picker/hr</span><span class="val" id="hlpRate">—</span></div>
                 <div class="result-row"><span class="key">HLN Rate/Picker/hr</span><span class="val" id="hlnRate">—</span></div>
@@ -139,6 +161,22 @@
                 <div class="result-row"><span class="key">HLN can complete/hr</span><span class="val" id="hlnBoxes">—</span></div>
                 <div class="result-row"><span class="key">Planned Rate</span><span class="val" id="plannedRate">—</span></div>
                 <div class="result-row"><span class="key">Deviation</span><span class="val" id="deviation">—</span></div>
+                <div style="margin-top:14px; padding-top:12px; border-top:2px solid #2F5496;">
+                    <div style="font-size:0.8rem; font-weight:600; color:#2F5496; margin-bottom:8px;">Planned (Reference)</div>
+                    <div class="result-row"><span class="key">Planned Picks/hr (Total)</span><span class="val" id="plannedTotalPicks">—</span></div>
+                    <div class="result-row"><span class="key">Upper Pick Limit</span><span class="val" id="upperPickLimit" style="color:#e65100;">—</span></div>
+                    <div class="result-row"><span class="key">Average Boxes</span><span class="val" id="avgBoxes" style="color:#6a1b9a;">—</span></div>
+                </div>
+                <div style="margin-top:14px; padding-top:12px; border-top:2px solid #70AD47; background:#f6fff6; margin-left:-20px; margin-right:-20px; padding:12px 20px;">
+                    <div style="font-size:0.8rem; font-weight:600; color:#2e7d32; margin-bottom:8px;">Actual (Based on Your Input)</div>
+                    <div class="result-row"><span class="key">Actual HLP Picks/hr</span><span class="val" id="actualHLPpicks" style="color:#1565c0;">—</span></div>
+                    <div class="result-row"><span class="key">Actual HLN Picks/hr</span><span class="val" id="actualHLNpicks" style="color:#1565c0;">—</span></div>
+                    <div class="result-row"><span class="key">Actual Total Picks/hr</span><span class="val" id="actualTotalPicks" style="color:#1565c0;">—</span></div>
+                    <div class="result-row"><span class="key" style="font-weight:600;">Actual Upper Pick Limit</span><span class="val" id="actualUPL" style="color:#e65100; font-size:1.1rem;">—</span></div>
+                    <div class="result-row"><span class="key" style="font-weight:600;">Actual Average Boxes</span><span class="val" id="actualAvgBoxes" style="color:#6a1b9a; font-size:1.1rem;">—</span></div>
+                    <div class="result-row"><span class="key">UPL Deviation</span><span class="val" id="uplDeviation">—</span></div>
+                </div>
+                <div style="font-size:0.7rem; color:#999; margin-top:10px;">UPL = (HLP+HLN Picks/hr) × (19/60) × 0.5 &nbsp;|&nbsp; Avg Boxes = UPL / (Picks per Box × 0.5)</div>
             </div>
         </div>
 
@@ -258,10 +296,14 @@
             document.getElementById('picksPerBox').value = d.picksPerBox;
             document.getElementById('hlpShare').value = d.hlpShare;
             document.getElementById('hlnShare').value = d.hlnShare;
-            document.getElementById('plannedHLP').value = d.plannedHLP;
-            document.getElementById('plannedHLN').value = d.plannedHLN;
-            document.getElementById('plannedHLPpicks').value = d.plannedHLPpicks;
-            document.getElementById('plannedHLNpicks').value = d.plannedHLNpicks;
+            // Set actual pickers from planned data (planned = actual input)
+            document.getElementById('actualHLP').value = d.plannedHLP;
+            document.getElementById('actualHLN').value = d.plannedHLN;
+            // Calculate performance from planned data
+            const hlpPerf = d.plannedHLP > 0 ? Math.round(d.plannedHLPpicks / d.plannedHLP) : 571;
+            const hlnPerf = d.plannedHLN > 0 ? Math.round(d.plannedHLNpicks / d.plannedHLN) : 514;
+            document.getElementById('hlpPickPerf').value = hlpPerf;
+            document.getElementById('hlnPickPerf').value = hlnPerf;
             document.getElementById('kwStatus').textContent = `Loaded ${kw} data`;
             calculate();
         }
@@ -294,17 +336,27 @@
             const picksPerBox = parseFloat(document.getElementById('picksPerBox').value) || 0;
             const hlpShare = parseFloat(document.getElementById('hlpShare').value) / 100;
             const hlnShare = parseFloat(document.getElementById('hlnShare').value) / 100;
-            const plannedHLP = parseFloat(document.getElementById('plannedHLP').value) || 0;
-            const plannedHLN = parseFloat(document.getElementById('plannedHLN').value) || 0;
-            const plannedHLPpicks = parseFloat(document.getElementById('plannedHLPpicks').value) || 0;
-            const plannedHLNpicks = parseFloat(document.getElementById('plannedHLNpicks').value) || 0;
+            const hlpPickPerf = parseFloat(document.getElementById('hlpPickPerf').value) || 0;
+            const hlnPickPerf = parseFloat(document.getElementById('hlnPickPerf').value) || 0;
             const actualHLP = parseFloat(document.getElementById('actualHLP').value) || 0;
             const actualHLN = parseFloat(document.getElementById('actualHLN').value) || 0;
+            const plannedHLP = actualHLP;
+            const plannedHLN = actualHLN;
+            const plannedHLPpicks = plannedHLP * hlpPickPerf;
+            const plannedHLNpicks = plannedHLN * hlnPickPerf;
+
+            // Display planned pickers (taken from input)
+            document.getElementById('plannedHLPdisplay').textContent = actualHLP;
+            document.getElementById('plannedHLNdisplay').textContent = actualHLN;
+
+            // Display calculated planned picks/hr
+            document.getElementById('plannedHLPpicksDisplay').textContent = Math.round(plannedHLPpicks).toLocaleString();
+            document.getElementById('plannedHLNpicksDisplay').textContent = Math.round(plannedHLNpicks).toLocaleString();
 
             const hlpPicksPerBox = picksPerBox * hlpShare;
             const hlnPicksPerBox = picksPerBox * hlnShare;
-            const hlpRatePerPicker = plannedHLP > 0 ? plannedHLPpicks / plannedHLP : 0;
-            const hlnRatePerPicker = plannedHLN > 0 ? plannedHLNpicks / plannedHLN : 0;
+            const hlpRatePerPicker = hlpPickPerf;
+            const hlnRatePerPicker = hlnPickPerf;
             const hlpPicksAvail = actualHLP * hlpRatePerPicker;
             const hlnPicksAvail = actualHLN * hlnRatePerPicker;
             const hlpBoxesHr = hlpPicksPerBox > 0 ? hlpPicksAvail / hlpPicksPerBox : 0;
@@ -323,6 +375,35 @@
             const devEl = document.getElementById('deviation');
             devEl.textContent = (dev >= 0 ? '+' : '') + Math.round(dev);
             devEl.className = 'val ' + (dev < 0 ? 'positive' : 'negative');
+
+            // Upper Pick Limit & Average Boxes (PLANNED)
+            const totalPicksPerHr = plannedHLPpicks + plannedHLNpicks;
+            const dwellTime = 19 / 60;
+            const upperPickLimit = totalPicksPerHr * dwellTime * 0.5;
+            const avgBoxes = picksPerBox > 0 ? upperPickLimit / (picksPerBox * 0.5) : 0;
+            document.getElementById('plannedTotalPicks').textContent = Math.round(totalPicksPerHr).toLocaleString();
+            document.getElementById('upperPickLimit').textContent = Math.round(upperPickLimit).toLocaleString();
+            document.getElementById('avgBoxes').textContent = Math.round(avgBoxes).toLocaleString();
+
+            // Upper Pick Limit & Average Boxes (ACTUAL - based on actual pickers)
+            const actualHLPpicksHr = actualHLP * hlpRatePerPicker;
+            const actualHLNpicksHr = actualHLN * hlnRatePerPicker;
+            const actualTotalPicksHr = actualHLPpicksHr + actualHLNpicksHr;
+            const actualUPL = actualTotalPicksHr * dwellTime * 0.5;
+            const actualAvgBoxes = picksPerBox > 0 ? actualUPL / (picksPerBox * 0.5) : 0;
+            const uplDev = actualUPL - upperPickLimit;
+
+            document.getElementById('actualHLPpicks').textContent = Math.round(actualHLPpicksHr).toLocaleString();
+            document.getElementById('actualHLNpicks').textContent = Math.round(actualHLNpicksHr).toLocaleString();
+            document.getElementById('actualTotalPicks').textContent = Math.round(actualTotalPicksHr).toLocaleString();
+            document.getElementById('actualUPL').textContent = Math.round(actualUPL).toLocaleString();
+            document.getElementById('actualAvgBoxes').textContent = Math.round(actualAvgBoxes).toLocaleString();
+            document.getElementById('actualUPLtop').textContent = Math.round(actualUPL).toLocaleString();
+            document.getElementById('actualAvgBoxesTop').textContent = Math.round(actualAvgBoxes).toLocaleString();
+
+            const uplDevEl = document.getElementById('uplDeviation');
+            uplDevEl.textContent = (uplDev >= 0 ? '+' : '') + Math.round(uplDev);
+            uplDevEl.className = 'val ' + (uplDev < 0 ? 'positive' : 'negative');
 
             // Hourly tracker
             let totalProduced = 0, totalMax = 0, hoursUsed = 0, badHours = 0;
