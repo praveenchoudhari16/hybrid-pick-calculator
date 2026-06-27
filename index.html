@@ -87,6 +87,7 @@
         .scenario-table td { font-size: 0.85rem; padding: 6px; }
         .scenario-table td.current { background: #FFFFCC; font-weight: bold; border: 2px solid #e6c300; }
         .scenario-table th { padding: 8px 6px; }
+        td.locked-max { color: #9C0006; font-weight: 700; background: #FFF0F0; }
         @media (max-width: 768px) {
             .grid { grid-template-columns: 1fr; }
             .input-row label { min-width: 140px; }
@@ -96,7 +97,7 @@
 <body>
     <div class="container">
         <h1>Hybrid Pick Rate & Performance Loss Calculator</h1>
-        <p class="subtitle">1 Box = HLP picks (60% of 21.26) + HLN picks (40% of 21.26) — both required to complete a box</p>
+        <p class="subtitle">1 Box = HLP picks (60% of 21.26) + HLN picks (40% of 21.26) — both required to complete a box | KW runs Friday to Thursday</p>
 
         <!-- KW Selector -->
         <div class="card" style="margin-bottom:20px; padding:12px 20px;">
@@ -183,11 +184,23 @@
         <!-- Hourly Tracker -->
         <div class="card">
             <h3>Hourly Performance & Loss Analysis</h3>
+            <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label style="font-weight:bold; color:#2F5496; margin-bottom:0;">Shift:</label>
+                    <select id="shiftSelect" onchange="buildHourlyTable()" style="padding:8px 16px; font-size:1rem; border:2px solid #2F5496; border-radius:6px; background:#FFFFCC; font-weight:bold; cursor:pointer;">
+                        <option value="early">Early (06:00 – 14:35)</option>
+                        <option value="late">Late (14:35 – 23:10)</option>
+                    </select>
+                </div>
+                <div style="font-size:0.75rem; color:#888; background:#f0f2f5; padding:6px 12px; border-radius:6px;">
+                    Max Possible is <strong style="color:#9C0006;">locked</strong> per hour once time passes — based on HC at that time
+                </div>
+            </div>
             <table>
                 <thead>
                     <tr>
                         <th>Hour</th>
-                        <th>Minutes</th>
+                        <th>Avail. Min</th>
                         <th>Actual Boxes</th>
                         <th>Max Possible</th>
                         <th>Loss (boxes)</th>
@@ -221,7 +234,115 @@
     <script>
         let weeklyData = {};
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT0Qz6kVTD9VggSUUFvcdsZdIJuurG01FU2GL5XS3MwUI4oGFZQ_qJuEONcNMUuwYU2wtOCyVuCcAFF/pub?output=csv&gid=';
-        let SHEET_GID = '0'; // Will be updated to Reference tab GID
+        let SHEET_GID = '0';
+
+        const SHIFTS = {
+            early: [
+                { label: '06:00 – 07:00', mins: 55, startH: 6, startM: 0 },
+                { label: '07:00 – 08:00', mins: 60, startH: 7, startM: 0 },
+                { label: '08:00 – 09:00', mins: 35, startH: 8, startM: 0 },
+                { label: '09:00 – 10:00', mins: 60, startH: 9, startM: 0 },
+                { label: '10:00 – 11:00', mins: 60, startH: 10, startM: 0 },
+                { label: '11:00 – 12:00', mins: 30, startH: 11, startM: 0 },
+                { label: '12:00 – 13:00', mins: 60, startH: 12, startM: 0 },
+                { label: '13:00 – 14:00', mins: 60, startH: 13, startM: 0 },
+                { label: '14:00 – 14:35', mins: 35, startH: 14, startM: 0 }
+            ],
+            late: [
+                { label: '14:35 – 15:00', mins: 25, startH: 14, startM: 35 },
+                { label: '15:00 – 16:00', mins: 60, startH: 15, startM: 0 },
+                { label: '16:00 – 17:00', mins: 50, startH: 16, startM: 0 },
+                { label: '17:00 – 18:00', mins: 40, startH: 17, startM: 0 },
+                { label: '18:00 – 19:00', mins: 60, startH: 18, startM: 0 },
+                { label: '19:00 – 20:00', mins: 55, startH: 19, startM: 0 },
+                { label: '20:00 – 21:00', mins: 40, startH: 20, startM: 0 },
+                { label: '21:00 – 22:00', mins: 60, startH: 21, startM: 0 },
+                { label: '22:00 – 23:10', mins: 65, startH: 22, startM: 0 }
+            ]
+        };
+
+        let lockedMaxPossible = {};
+        let hourlyTableBuilt = false;
+
+        function getShiftSlots() {
+            return SHIFTS[document.getElementById('shiftSelect').value];
+        }
+
+        function isSlotPast(slot) {
+            const now = new Date();
+            const h = now.getHours();
+            const m = now.getMinutes();
+            const nextSlotIndex = getShiftSlots().indexOf(slot) + 1;
+            const slots = getShiftSlots();
+            if (nextSlotIndex < slots.length) {
+                const next = slots[nextSlotIndex];
+                return (h > next.startH) || (h === next.startH && m >= next.startM);
+            }
+            const shift = document.getElementById('shiftSelect').value;
+            if (shift === 'early') return (h > 14) || (h === 14 && m >= 35);
+            return (h >= 23 && m >= 10) || h < 14;
+        }
+
+        function getLockedKey(slot) {
+            const shift = document.getElementById('shiftSelect').value;
+            const today = new Date().toDateString();
+            return `${today}_${shift}_${slot.label}`;
+        }
+
+        function lockMaxForPastSlots(maxBoxes) {
+            const slots = getShiftSlots();
+            slots.forEach((slot, i) => {
+                const key = getLockedKey(slot);
+                if (isSlotPast(slot) && !(key in lockedMaxPossible)) {
+                    lockedMaxPossible[key] = maxBoxes * (slot.mins / 60);
+                }
+            });
+        }
+
+        function getMaxForSlot(slot, currentMaxBoxes) {
+            const key = getLockedKey(slot);
+            if (key in lockedMaxPossible) {
+                return lockedMaxPossible[key];
+            }
+            if (isSlotPast(slot)) {
+                const val = currentMaxBoxes * (slot.mins / 60);
+                lockedMaxPossible[key] = val;
+                return val;
+            }
+            return currentMaxBoxes * (slot.mins / 60);
+        }
+
+        function buildHourlyTable() {
+            const tbody = document.getElementById('hourlyBody');
+            const slots = getShiftSlots();
+            const oldValues = {};
+            const oldReasons = {};
+            for (let i = 0; i < 12; i++) {
+                const el = document.getElementById(`hour_${i}`);
+                if (el) oldValues[i] = el.value;
+                const rEl = document.getElementById(`reason_${i}`);
+                if (rEl) oldReasons[i] = rEl.value;
+            }
+            tbody.innerHTML = '';
+            slots.forEach((slot, i) => {
+                const tr = document.createElement('tr');
+                const pastClass = isSlotPast(slot) ? ' style="background:#f9f9f9;"' : '';
+                tr.innerHTML = `
+                    <td${pastClass}><strong>${slot.label}</strong></td>
+                    <td${pastClass}>${slot.mins}</td>
+                    <td><input type="number" class="yellow" id="hour_${i}" value="${oldValues[i] !== undefined ? oldValues[i] : ''}" onchange="calculate()"></td>
+                    <td id="max_${i}" style="font-weight:600;">—</td>
+                    <td id="loss_${i}">—</td>
+                    <td id="lossPct_${i}">—</td>
+                    <td id="hlpUtil_${i}">—</td>
+                    <td id="hlnUtil_${i}">—</td>
+                    <td><input type="text" id="reason_${i}" value="${oldReasons[i] || ''}" placeholder="Enter reason..." style="width:140px;font-size:0.8rem;padding:4px 6px;border:1px solid #ddd;border-radius:4px;"></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            hourlyTableBuilt = true;
+            calculate();
+        }
 
         async function loadDataFile() {
             try {
@@ -308,29 +429,28 @@
             calculate();
         }
 
-        const HOURS = 12;
-        const defaultBoxes = [922, 1639, 1455, 773, '', '', '', '', '', '', '', ''];
+        function getKWForDate(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diffToFri = (day + 2) % 7;
+            const friday = new Date(d);
+            friday.setDate(d.getDate() - diffToFri);
+            const jan1 = new Date(friday.getFullYear(), 0, 1);
+            const days = Math.floor((friday - jan1) / 86400000);
+            return Math.ceil((days + jan1.getDay() + 1) / 7);
+        }
 
         function init() {
             loadDataFile();
-            const tbody = document.getElementById('hourlyBody');
-            for (let i = 0; i < HOURS; i++) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>Hour ${i + 1}</td>
-                    <td><input type="number" class="yellow" id="min_${i}" value="60" style="width:60px;" onchange="calculate()"></td>
-                    <td><input type="number" class="yellow" id="hour_${i}" value="${defaultBoxes[i]}" onchange="calculate()"></td>
-                    <td id="max_${i}">—</td>
-                    <td id="loss_${i}">—</td>
-                    <td id="lossPct_${i}">—</td>
-                    <td id="hlpUtil_${i}">—</td>
-                    <td id="hlnUtil_${i}">—</td>
-                    <td><input type="text" id="reason_${i}" placeholder="Enter reason..." style="width:140px;font-size:0.8rem;padding:4px 6px;border:1px solid #ddd;border-radius:4px;"></td>
-                `;
-                tbody.appendChild(tr);
-            }
-            calculate();
+            buildHourlyTable();
+            setInterval(() => {
+                lockMaxForPastSlots(getLastMaxBoxes());
+                calculate();
+            }, 60000);
         }
+
+        let lastMaxBoxes = 0;
+        function getLastMaxBoxes() { return lastMaxBoxes; }
 
         function calculate() {
             const picksPerBox = parseFloat(document.getElementById('picksPerBox').value) || 0;
@@ -406,32 +526,47 @@
             uplDevEl.className = 'val ' + (uplDev < 0 ? 'positive' : 'negative');
 
             // Hourly tracker
+            lastMaxBoxes = maxBoxes;
+            lockMaxForPastSlots(maxBoxes);
+            const slots = getShiftSlots();
             let totalProduced = 0, totalMax = 0, hoursUsed = 0, badHours = 0;
-            for (let i = 0; i < HOURS; i++) {
-                const val = document.getElementById(`hour_${i}`).value;
-                const minutes = parseFloat(document.getElementById(`min_${i}`).value) || 60;
+            for (let i = 0; i < slots.length; i++) {
+                const slot = slots[i];
+                const val = document.getElementById(`hour_${i}`) ? document.getElementById(`hour_${i}`).value : '';
                 const maxEl = document.getElementById(`max_${i}`);
                 const lossEl = document.getElementById(`loss_${i}`);
                 const lossPctEl = document.getElementById(`lossPct_${i}`);
                 const hlpUtilEl = document.getElementById(`hlpUtil_${i}`);
                 const hlnUtilEl = document.getElementById(`hlnUtil_${i}`);
 
-                const maxForSlot = maxBoxes * (minutes / 60);
+                if (!maxEl) continue;
+
+                const maxForSlot = getMaxForSlot(slot, maxBoxes);
+                const key = getLockedKey(slot);
+                const isLocked = key in lockedMaxPossible;
                 maxEl.textContent = Math.round(maxForSlot).toLocaleString();
+                if (isLocked) {
+                    maxEl.style.color = '#9C0006';
+                    maxEl.title = 'Locked — based on HC at that time';
+                } else {
+                    maxEl.style.color = '';
+                    maxEl.title = '';
+                }
 
                 if (val === '' || val === null) {
                     lossEl.textContent = '—'; lossEl.className = '';
                     lossPctEl.textContent = '—'; lossPctEl.className = '';
                     hlpUtilEl.textContent = '—';
                     hlnUtilEl.textContent = '—';
+                    totalMax += maxForSlot;
                     continue;
                 }
 
                 const actual = parseFloat(val) || 0;
                 const loss = maxForSlot - actual;
                 const lossPct = maxForSlot > 0 ? (1 - actual / maxForSlot) : 0;
-                const hlpPicksForSlot = hlpPicksAvail * (minutes / 60);
-                const hlnPicksForSlot = hlnPicksAvail * (minutes / 60);
+                const hlpPicksForSlot = hlpPicksAvail * (slot.mins / 60);
+                const hlnPicksForSlot = hlnPicksAvail * (slot.mins / 60);
                 const hlpUtil = hlpPicksForSlot > 0 ? (actual * hlpPicksPerBox) / hlpPicksForSlot : 0;
                 const hlnUtil = hlnPicksForSlot > 0 ? (actual * hlnPicksPerBox) / hlnPicksForSlot : 0;
 
