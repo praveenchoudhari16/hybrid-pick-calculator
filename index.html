@@ -370,6 +370,7 @@
                 }
             } catch (e) {
                 document.getElementById('kwStatus').textContent = 'No data source found - using manual input';
+                populateKWDropdown();
             }
         }
 
@@ -400,16 +401,26 @@
         function populateKWDropdown() {
             const select = document.getElementById('kwSelect');
             select.innerHTML = '<option value="">-- Select KW --</option>';
-            const weeks = Object.keys(weeklyData).sort((a, b) => {
+            const year = new Date().getFullYear();
+            const currentKW = getCurrentKW();
+            const nextKW = currentKW + 1;
+
+            // Always add current week and next week
+            const alwaysShow = [`KW${currentKW}`, `KW${nextKW}`];
+            const allWeeks = new Set([...Object.keys(weeklyData), ...alwaysShow]);
+            const weeks = Array.from(allWeeks).sort((a, b) => {
                 return parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,''));
             });
-            const year = new Date().getFullYear();
+
             weeks.forEach(kw => {
                 const opt = document.createElement('option');
                 opt.value = kw;
                 const kwNum = parseInt(kw.replace(/\D/g,''));
                 const range = getKWDateRange(kwNum, year);
-                opt.textContent = `${kw} (${range})`;
+                let label = `${kw} (${range})`;
+                if (kwNum === currentKW) label += ' ← current';
+                else if (kwNum === nextKW) label += ' ← next';
+                opt.textContent = label;
                 select.appendChild(opt);
             });
         }
